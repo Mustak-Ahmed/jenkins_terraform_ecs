@@ -2,7 +2,8 @@ resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
 resource "aws_subnet" "main" {
-  vpc_id = "${aws_vpc.main.id}"
+  vpc_id     = aws_vpc.main.id
+  
   cidr_block = "10.0.1.0/24"
   availability_zone = "ap-south-1a"
   map_public_ip_on_launch = true
@@ -12,7 +13,7 @@ resource "aws_subnet" "main" {
   }
 }
 resource "aws_subnet" "main2" {
-  vpc_id     = "${aws_vpc.main.id}"
+  vpc_id     = aws_vpc.main.id
   cidr_block = "10.0.2.0/24"
   availability_zone = "ap-south-1b"
   map_public_ip_on_launch = true
@@ -22,37 +23,37 @@ resource "aws_subnet" "main2" {
   }
 }
 resource "aws_internet_gateway" "gw" {
-  vpc_id = "${aws_vpc.main.id}"
+  vpc_id = aws_vpc.main.id
  
   tags = {
     Name = "TF-GW"
   }
 }
 resource "aws_route_table" "rt" {
-  vpc_id = "${aws_vpc.main.id}"
+  vpc_id = aws_vpc.main.id
  
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = "${aws_internet_gateway.gw.id}"
+    gateway_id = aws_internet_gateway.gw.id
   }
   tags = {
     Name = "TF-RT"
   }
 }
 resource "aws_route_table_association" "a" {
-  subnet_id      = "${aws_subnet.main.id}"
-  route_table_id = "${aws_route_table.rt.id}"
+  subnet_id      = aws_subnet.main.id
+  route_table_id = aws_route_table.rt.id
 }
 resource "aws_route_table_association" "b" {
-  subnet_id      = "${aws_subnet.main2.id}"
-  route_table_id = "${aws_route_table.rt.id}"
+  subnet_id      = aws_subnet.main2.id
+  route_table_id = aws_route_table.rt.id
 }
 
 
 resource "aws_security_group" "allow_tls" {
   name        = "allow_tls"
   description = "Allow TLS inbound traffic"
-  vpc_id      = "${aws_vpc.main.id}"
+  vpc_id      = aws_vpc.main.id
   #   ingress {
   #   from_port        = 0
   #   to_port          = 0
@@ -94,10 +95,10 @@ data "aws_iam_policy_document" "assume_role_policy" {
 }
 resource "aws_iam_role" "ecsTaskExecutionRole" {
   name               = "execution-task-role"
-  assume_role_policy = "${data.aws_iam_policy_document.assume_role_policy.json}"
+  assume_role_policy = data.aws_iam_policy_document.assume_role_policy.json
 }
 resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
-  role       = "${aws_iam_role.ecsTaskExecutionRole.name}"
+  role       = aws_iam_role.ecsTaskExecutionRole.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
 }
 
@@ -109,7 +110,7 @@ resource "aws_ecs_task_definition" "aws-ecs-task" {
   [
     {
       "name": "container",
-      "image": "${aws_vpc.main.id}",
+      "image": "${var.imageUri}",
       "portMappings": [
         {
           "containerPort": 5000,
@@ -127,40 +128,40 @@ resource "aws_ecs_task_definition" "aws-ecs-task" {
   network_mode             = "awsvpc"
   memory                   = "512"
   cpu                      = "256"
-  execution_role_arn       = "${aws_iam_role.ecsTaskExecutionRole.arn}"
-  task_role_arn            = "${aws_iam_role.ecsTaskExecutionRole.arn}"
+  execution_role_arn       = aws_iam_role.ecsTaskExecutionRole.arn
+  task_role_arn            = aws_iam_role.ecsTaskExecutionRole.arn
 }
 resource "aws_ecs_service" "aws-ecs-service" {
   name                 = "ecs-service"
-  cluster              = "${aws_ecs_cluster.foo.id}"
-  task_definition      = "${aws_ecs_task_definition.aws-ecs-task.id}"
+  cluster              = aws_ecs_cluster.foo.id
+  task_definition      = aws_ecs_task_definition.aws-ecs-task.id
   launch_type          = "FARGATE"
   scheduling_strategy  = "REPLICA"
   desired_count        = 1
   force_new_deployment = true
 
   network_configuration {
-    subnets          = ["${aws_subnet.main.id}"]
+    subnets          = [aws_subnet.main.id]
     assign_public_ip = true
     security_groups = [
-      "${aws_security_group.allow_tls.id}",
+      aws_security_group.allow_tls.id,
     ]
   }
     load_balancer {
-    target_group_arn = "${aws_lb_target_group.target_group.arn}"
+    target_group_arn = aws_lb_target_group.target_group.arn
     container_name   = "container"
     container_port   = 5000
   }
 
-#   depends_on = [aws_lb_listener.listener]
+  depends_on = [aws_lb_listener.listener]
 }
 
   resource "aws_lb" "test" {
   name               = "alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = ["${aws_security_group.allow_tls.id}"]
-  subnets            = ["${aws_subnet.main.id}", "{$aws_subnet.main2.id}"]
+  security_groups    = [aws_security_group.allow_tls.id]
+  subnets            = [aws_subnet.main.id, aws_subnet.main2.id]
 
    ip_address_type    = "ipv4"
 }
@@ -170,7 +171,7 @@ resource "aws_lb_target_group" "target_group" {
   port        = 80
   protocol    = "HTTP"
   target_type = "ip"
-  vpc_id      = "${aws_vpc.main.id}"
+  vpc_id      = aws_vpc.main.id
 
   health_check {
     healthy_threshold   = "3"
@@ -183,12 +184,12 @@ resource "aws_lb_target_group" "target_group" {
   }
 }
 resource "aws_lb_listener" "listener" {
-  load_balancer_arn = "${aws_lb.test.id}"
+  load_balancer_arn = aws_lb.test.id
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = "${aws_lb_target_group.target_group.id}"
+    target_group_arn = aws_lb_target_group.target_group.id
   }
 }
