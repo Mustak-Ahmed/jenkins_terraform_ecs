@@ -5,7 +5,7 @@ pipeline {
     }
 
 	agent{
-		docker {image 'hashicorp/terraform'}
+		docker {image 'amazonlinux'}
 	}
     stages {
          stage('ecr push') {
