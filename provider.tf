@@ -7,9 +7,9 @@
 #   }
 # }
 
-terraform {
-  required_version = ">= 0.13"
-}
+# terraform {
+#   required_version = ">= 0.13"
+# }
 # Configure and downloading plugins for aws
 provider "aws" {
   region     = "${var.aws_region}"
