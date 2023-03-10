@@ -8,15 +8,14 @@
 # }
 
 terraform {
+  required_version = ">= 0.14"
   required_providers {
-...
-    rke = {
-      source  = "rancher/rke"
-      version = "1.1.0"
+    aws = {
+          source  = "hashicorp/aws"
+          version = ">= 3.35.0"
+        }
+      }
     }
-  }
-...
-}
 # Configure and downloading plugins for aws
 provider "aws" {
   region     = "${var.aws_region}"
