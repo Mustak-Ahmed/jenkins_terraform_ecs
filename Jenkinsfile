@@ -4,9 +4,7 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
     }
 
-	agent{
-		docker {image 'amazonlinux'}
-	}
+	agent any
     stages {
          stage('ecr push') {
             steps {     
